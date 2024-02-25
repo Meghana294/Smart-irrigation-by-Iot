@@ -1,0 +1,54 @@
+#define BLYNK_TEMPLATE_ID "TMPL3ZqG77R8d"
+#define BLYNK_TEMPLATE_NAME "Smart irrigation system"
+#define BLYNK_AUTH_TOKEN "9HZD6FxZxurZuQqw0tGWCKVEpguXZrOl"
+#define BLYNK_PRINT Serial
+#include<ESP8266WiFi.h>
+#include<BlynkSimpleEsp8266.h>
+#include <DHT.h>
+#define DHTPIN D2
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+#define soil_pin A0
+#define motor D5
+BlynkTimer timer;
+char auth[]=BLYNK_AUTH_TOKEN;
+char ssid[]="Esp8266";
+char pass[]="88888888";
+const int soil_moisture_threshold=550;
+void sendSensor()
+{
+float h = dht.readHumidity();
+float t = dht.readTemperature();
+if (isnan(h) || isnan(t)) {
+Serial.println("Failed to read from DHT sensor!");
+return;
+}
+int soil_feed = analogRead(soil_pin);
+Blynk.virtualWrite(V2, soil_feed);
+Blynk.virtualWrite(V1, h);
+Blynk.virtualWrite(V0, t);
+14
+if (soil_feed < soil_moisture_threshold)
+{
+digitalWrite(motor, HIGH); // Turn on the relay
+Blynk.virtualWrite(V3, 1); // Update the app to show the relay is ON
+}
+else
+{
+digitalWrite(motor, LOW); // Turn off the relay
+Blynk.virtualWrite(V3, 0); //Update the app to show the relay is off
+}
+}
+BLYNK_WRITE(V3){
+digitalWrite(motor, param.asInt());
+}
+void setup() {
+pinMode(motor, OUTPUT);
+Serial.begin(9600);
+Blynk.begin(auth,ssid,pass);
+dht.begin();
+timer.setInterval(1000L, sendSensor);
+}
+void loop() {
+Blynk.run();
+timer.r
